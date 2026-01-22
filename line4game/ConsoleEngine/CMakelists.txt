@@ -1,0 +1,8 @@
+add_library(ConsoleEngine
+    ConsoleEngine.cpp
+)
+target_include_directories(ConsoleEngine PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
+target_compile_features(ConsoleEngine PUBLIC cxx_std_20)
