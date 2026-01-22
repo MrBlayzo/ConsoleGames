@@ -27,7 +27,7 @@ class Board
 public:
     Board(int width, int height);
     void draw();
-    int get_new_cursor_pos();
+    int get_new_cursor_pos(int cursor);
 
 private:
     int width;
@@ -38,13 +38,15 @@ private:
 
 class Player
 {
-    virtual void move(Board board) = 0;
+public:
+    virtual void move(Board &board) = 0;
 };
 
 class ComuterPlayer : public Player
 {
+public:
     ComuterPlayer(ComputeParams compute_params = ComputeParams{MoveTypes::minimax, 6});
-    void move(Board board) override;
+    void move(Board &board) override;
 
 private:
     ComputeParams compute_params;
@@ -52,8 +54,9 @@ private:
 
 class PeoplePlayer : public Player
 {
+public:
     PeoplePlayer() = default;
-    void move(Board board) override;
+    void move(Board &board) override;
 
 private:
     int cursor;
@@ -63,9 +66,11 @@ class Line4Game
 {
 public:
     Line4Game(int width = 7, int height = 6);
-    Line4Game(int width = 7, int height = 6, std::unique_ptr<Player> player2);
-    Line4Game(int width = 7, int height = 6, std::unique_ptr<Player> player2,
-              std::unique_ptr<Player> player1);
+    Line4Game(std::unique_ptr<Player> player2,
+              int width = 7, int height = 6);
+    Line4Game(std::unique_ptr<Player> player2,
+              std::unique_ptr<Player> player1,
+              int width = 7, int height = 6);
     void play();
 
 private:
