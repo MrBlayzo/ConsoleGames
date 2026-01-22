@@ -16,6 +16,8 @@ enum class Participant
     none
 };
 
+char to_char(Participant p);
+
 struct ComputeParams
 {
     MoveTypes move_type;
@@ -26,7 +28,7 @@ class Board
 {
 public:
     Board(int width, int height);
-    void draw();
+    void draw(int cursor);
     int get_new_cursor_pos(int cursor);
 
 private:
@@ -39,6 +41,7 @@ private:
 class Player
 {
 public:
+    virtual ~Player() = default;
     virtual void move(Board &board) = 0;
 };
 
@@ -59,7 +62,7 @@ public:
     void move(Board &board) override;
 
 private:
-    int cursor;
+    int cursor = 0;;
 };
 
 class Line4Game

@@ -2,10 +2,29 @@
 #include <iostream>
 #include "Game.h"
 
-Board::Board(int width, int height) : board(height, std::vector<Participant>(width, Participant::none)) {}
+char to_char(Participant p)
+{
+    switch (p)
+    {
+    case Participant::player1:
+        return '*';
+    case Participant::player2:
+        return 'O';
+    case Participant::none:
+        return ' ';
+    }
+    return '?';
+}
+
+Board::Board(int width, int height)
+    : width(width),
+      height(height),
+      engine(),
+      board(height, std::vector<Participant>(width, Participant::none)) {}
 
 int Board::get_new_cursor_pos(int cursor)
 {
+    draw(cursor);
     std::string input = engine.get();
     while (!input.empty())
     {
@@ -20,14 +39,33 @@ int Board::get_new_cursor_pos(int cursor)
                 cursor = std::min(cursor + 1, width - 1);
             }
         }
-        draw();
+        draw(cursor);
         input = engine.get();
     }
     return cursor;
 }
 
-void Board::draw()
+void Board::draw(int cursor)
 {
+    engine.clear();
+    for (int i = 0; i <= cursor * 2; ++i)
+    {
+        engine.print(' ');
+    }
+    engine.print('v');
+    for (int i = cursor * 2; i <= (width + 1) * 2; ++i)
+    {
+        engine.print(' ');
+    }
+    engine.print('\n');
+    for (auto &row : board)
+    {
+        for (auto &p : row)
+        {
+            engine.print('|', to_char(p));
+        }
+        engine.print('|', '\n');
+    }
 }
 
 Line4Game::Line4Game(int width, int height)
