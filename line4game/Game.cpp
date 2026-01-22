@@ -73,7 +73,7 @@ bool Board::try_add_piece(int cursor, Participant p)
     if (board[0][cursor] != Participant::none)
         return false;
     int row = 0;
-    while(row<height && board[row][cursor] == Participant::none)
+    while (row < height && board[row][cursor] == Participant::none)
         ++row;
     board[row - 1][cursor] = p;
     return true;
@@ -81,12 +81,12 @@ bool Board::try_add_piece(int cursor, Participant p)
 
 Line4Game::Line4Game(int width, int height)
     : board(width, height),
-      player1(std::make_unique<PeoplePlayer>()),
-      player2(std::make_unique<PeoplePlayer>()) {}
+      player1(std::make_unique<PeoplePlayer>(Participant::player1)),
+      player2(std::make_unique<PeoplePlayer>(Participant::player2)) {}
 Line4Game::Line4Game(std::unique_ptr<Player> player2,
                      int width, int height)
     : board(width, height),
-      player1(std::make_unique<PeoplePlayer>()),
+      player1(std::make_unique<PeoplePlayer>(Participant::player1)),
       player2(std::move(player2)) {}
 Line4Game::Line4Game(std::unique_ptr<Player> player2,
                      std::unique_ptr<Player> player1,
@@ -100,6 +100,7 @@ void Line4Game::play()
     while (true)
     {
         player1->move(board);
+        player2->move(board);
     }
 }
 
@@ -120,12 +121,24 @@ Participant Line4Game::check_col_win() { return Participant::none; }
 Participant Line4Game::check_diag1_win() { return Participant::none; }
 Participant Line4Game::check_diag2_win() { return Participant::none; }
 
+Player::Player(Participant participant) : participant(participant) {}
+
+PeoplePlayer::PeoplePlayer(Participant p) : Player(p) {}
+
+ComputerPlayer::ComputerPlayer(Participant p, ComputeParams params)
+    : Player(p), compute_params(params) {}
+
 void PeoplePlayer::move(Board &board)
 {
     bool valid_move = false;
-    while(!valid_move){
+    while (!valid_move)
+    {
         cursor = board.get_new_cursor_pos(cursor);
-        valid_move = board.try_add_piece(cursor, Participant::player1);
+        valid_move = board.try_add_piece(cursor, participant);
     }
-    
+}
+
+void ComputerPlayer::move(Board &board)
+{
+    bool valid_move = false;
 }

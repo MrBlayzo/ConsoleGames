@@ -42,14 +42,17 @@ private:
 class Player
 {
 public:
+    Player(Participant participant);
     virtual ~Player() = default;
     virtual void move(Board &board) = 0;
+protected:
+    Participant participant;
 };
 
-class ComuterPlayer : public Player
+class ComputerPlayer : public Player
 {
 public:
-    ComuterPlayer(ComputeParams compute_params = ComputeParams{MoveTypes::minimax, 6});
+    ComputerPlayer(Participant participant, ComputeParams params = ComputeParams{MoveTypes::minimax, 6});
     void move(Board &board) override;
 
 private:
@@ -59,7 +62,7 @@ private:
 class PeoplePlayer : public Player
 {
 public:
-    PeoplePlayer() = default;
+    PeoplePlayer(Participant participant);
     void move(Board &board) override;
 
 private:
