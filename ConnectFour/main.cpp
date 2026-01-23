@@ -93,7 +93,7 @@ GameParams get_params_from_args(int argc, char *argv[])
         }
         else if (key == "-help")
         {
-            std::cout << "Usage: line4game [options]\n"
+            std::cout << "Usage: ConnectFour [options]\n"
                       << "Options:\n"
                       << "  -width=N or -width N or -w=N or -w N\n"
                       << "  -height=N or -height N or -h=N or -h N\n"
@@ -105,16 +105,16 @@ GameParams get_params_from_args(int argc, char *argv[])
     return params;
 }
 
-Line4Game make_game(GameParams params)
+ConnectFour make_game(GameParams params)
 {
-    return Line4Game(params.width, params.height, player_from_string(params.player1_spec, Participant::player1),
+    return ConnectFour(params.width, params.height, player_from_string(params.player1_spec, Participant::player1),
                      player_from_string(params.player2_spec, Participant::player2));
 }
 
 int main(int argc, char *argv[])
 {
     GameParams params = get_params_from_args(argc, argv);
-    Line4Game game = make_game(params);
+    ConnectFour game = make_game(params);
     game.play();
     return 0;
 }

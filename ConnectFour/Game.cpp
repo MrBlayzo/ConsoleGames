@@ -256,7 +256,7 @@ Participant Board::check_diag2_win()
     return Participant::none;
 }
 
-Line4Game::Line4Game(int width, int height,
+ConnectFour::ConnectFour(int width, int height,
                      std::unique_ptr<Player> player1,
                      std::unique_ptr<Player> player2)
     : board(width, height),
@@ -266,32 +266,32 @@ Line4Game::Line4Game(int width, int height,
     std::srand(std::time(nullptr));
 }
 
-Line4Game Line4Game::HumanVsComputer(int width, int height, ComputeParams params)
+ConnectFour ConnectFour::HumanVsComputer(int width, int height, ComputeParams params)
 {
-    return Line4Game(width, height,
+    return ConnectFour(width, height,
                      std::make_unique<HumanPlayer>(Participant::player1),
                      std::make_unique<ComputerPlayer>(Participant::player2, params));
 }
-Line4Game Line4Game::ComputerVsHuman(int width, int height, ComputeParams params)
+ConnectFour ConnectFour::ComputerVsHuman(int width, int height, ComputeParams params)
 {
-    return Line4Game(width, height,
+    return ConnectFour(width, height,
                      std::make_unique<ComputerPlayer>(Participant::player1, params),
                      std::make_unique<HumanPlayer>(Participant::player2));
 }
-Line4Game Line4Game::ComputerVsComputer(int width, int height, ComputeParams params_1, ComputeParams params_2)
+ConnectFour ConnectFour::ComputerVsComputer(int width, int height, ComputeParams params_1, ComputeParams params_2)
 {
-    return Line4Game(width, height,
+    return ConnectFour(width, height,
                      std::make_unique<ComputerPlayer>(Participant::player1, params_1),
                      std::make_unique<ComputerPlayer>(Participant::player2, params_2));
 }
-Line4Game Line4Game::HumanVsHuman(int width, int height)
+ConnectFour ConnectFour::HumanVsHuman(int width, int height)
 {
-    return Line4Game(width, height,
+    return ConnectFour(width, height,
                      std::make_unique<HumanPlayer>(Participant::player1),
                      std::make_unique<HumanPlayer>(Participant::player2));
 }
 
-void Line4Game::play()
+void ConnectFour::play()
 {
     Participant winner;
     while (true)

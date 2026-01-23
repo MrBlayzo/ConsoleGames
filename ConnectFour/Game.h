@@ -96,17 +96,17 @@ private:
 
 std::unique_ptr<Player> player_from_string(std::string params, Participant p);
 
-class Line4Game
+class ConnectFour
 {
 public:
-    Line4Game(int width, int height,
+    ConnectFour(int width, int height,
               std::unique_ptr<Player> player1,
               std::unique_ptr<Player> player2);
-    static Line4Game HumanVsComputer(int width = 7, int height = 6, ComputeParams params=ComputeParams());
-    static Line4Game ComputerVsHuman(int width = 7, int height = 6, ComputeParams params=ComputeParams());
-    static Line4Game ComputerVsComputer(int width = 7, int height = 6,
+    static ConnectFour HumanVsComputer(int width = 7, int height = 6, ComputeParams params=ComputeParams());
+    static ConnectFour ComputerVsHuman(int width = 7, int height = 6, ComputeParams params=ComputeParams());
+    static ConnectFour ComputerVsComputer(int width = 7, int height = 6,
                                         ComputeParams params_1=ComputeParams(), ComputeParams params_2=ComputeParams());
-    static Line4Game HumanVsHuman(int width = 7, int height = 6);
+    static ConnectFour HumanVsHuman(int width = 7, int height = 6);
     void play();
 
 private:
