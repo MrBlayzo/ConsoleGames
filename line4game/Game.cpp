@@ -147,9 +147,11 @@ Participant Board::check_win_for_current_pos(Participant &prev, Participant &cur
         {
         case Participant::player1:
             player1_count = 1;
+            player2_count = 0;
             break;
         case Participant::player2:
             player2_count = 1;
+            player1_count = 0;
             break;
         default:
             player1_count = 0;
@@ -259,7 +261,10 @@ Line4Game::Line4Game(int width, int height,
                      std::unique_ptr<Player> player2)
     : board(width, height),
       player1(std::move(player1)),
-      player2(std::move(player2)) {}
+      player2(std::move(player2))
+{
+    std::srand(std::time(nullptr));
+}
 
 Line4Game Line4Game::HumanVsComputer(int width, int height, ComputeParams params)
 {
@@ -324,10 +329,7 @@ Player::Player(Participant participant) : participant(participant) {}
 HumanPlayer::HumanPlayer(Participant p) : Player(p) {}
 
 ComputerPlayer::ComputerPlayer(Participant p, ComputeParams params)
-    : Player(p), compute_params(params)
-{
-    std::srand(std::time(nullptr));
-}
+    : Player(p), compute_params(params) {}
 
 void HumanPlayer::move(Board &board)
 {
@@ -369,7 +371,8 @@ void ComputerPlayer::random_move(Board &board)
 ComputerPlayer::MoveResult ComputerPlayer::calculate_next_move(Board board, Participant p, int depth, int alpha, int beta)
 {
     Participant winner = board.check_win();
-    if (winner != Participant::none){
+    if (winner != Participant::none)
+    {
         int base_score = (winner == participant) ? 1 : -1;
         int scaled_score = base_score * (1000 - depth + 1);
         return {scaled_score, -1};
@@ -397,7 +400,7 @@ ComputerPlayer::MoveResult ComputerPlayer::calculate_next_move(Board board, Part
             if (next_check.score > best_score)
             {
                 best_score = next_check.score;
-                best_move = i;
+                best_move = i; // TODO: почти сразу инициализируется 0, поэтому если достигнута глубина просчета - вернет 0
             }
             alpha = std::max(alpha, best_score);
         }
@@ -421,10 +424,30 @@ void ComputerPlayer::minimax_move(Board &board)
 {
 
     auto next_check = calculate_next_move(board,
-                                        participant,
-                                        0);
+                                          participant,
+                                          0);
     if (next_check.column != -1)
         board.try_add_piece(next_check.column, participant);
     else
         random_move(board);
+}
+
+std::unique_ptr<Player> player_from_string(std::string params, Participant p)
+{
+    if (params == "human")
+    {
+        return std::make_unique<HumanPlayer>(p);
+    }
+    if (params.rfind("minimax:", 0) == 0)
+    {
+        int depth = std::stoi(params.substr(8));
+        return std::make_unique<ComputerPlayer>(p, ComputeParams{MoveTypes::minimax, depth});
+    }
+    if (params.rfind("random", 0) == 0)
+    {
+        return std::make_unique<ComputerPlayer>(p, ComputeParams{MoveTypes::random, -1});
+    }
+    std::cerr << "Invalid param for player" << params << "\n"
+              << "Use default value: " << "minimax:6" << "\n";
+    return std::make_unique<ComputerPlayer>(p);
 }

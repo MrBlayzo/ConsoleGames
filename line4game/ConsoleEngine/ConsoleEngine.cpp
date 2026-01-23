@@ -3,7 +3,6 @@
 
 ConsoleEngine::ConsoleEngine()
 {
-    clear();
 }
 
 void ConsoleEngine::clear()

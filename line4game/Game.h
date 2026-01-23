@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 #include <memory>
 #include <utility>
 #include "ConsoleEngine.h"
@@ -92,6 +93,8 @@ private:
     int cursor = 0;
     ;
 };
+
+std::unique_ptr<Player> player_from_string(std::string params, Participant p);
 
 class Line4Game
 {
