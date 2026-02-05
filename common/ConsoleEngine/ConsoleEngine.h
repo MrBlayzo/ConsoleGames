@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <cstdint>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -50,6 +51,7 @@ enum class ConsoleStyle {
     Reset = 0,
     Bold = 1,
     Underline = 4,
+    Inverse = 7,
 };
 enum class ConsoleTextColors {
     Black = 30,
@@ -72,6 +74,32 @@ enum class ConsoleBkgColors {
     White = 47,
 };
 
+struct Color256 {
+    uint8_t id;
+    constexpr Color256(int i) : id(static_cast<uint8_t>(i)) {};
+};
+
+namespace Colors256{
+    constexpr Color256 Black{0};
+    constexpr Color256 Red{196};
+    constexpr Color256 Green{46};
+    constexpr Color256 Yellow{226};
+    constexpr Color256 Blue{21};
+    constexpr Color256 Magenta{201};
+    constexpr Color256 Cyan{51};
+    constexpr Color256 White{231};
+    constexpr Color256 Pink{198};
+    constexpr Color256 Orange{208};
+    constexpr Color256 Gray20{235};
+    constexpr Color256 Gray50{240};
+    constexpr Color256 Gray80{248};
+    constexpr Color256 DarkGreen{22};
+    constexpr Color256 GrayBrown{101};
+    constexpr Color256 LightBrown{136};
+    constexpr Color256 OrangeBrown{130};
+    constexpr Color256 Purple{35};
+}
+
 class ConsoleEngine {
   public:
     ConsoleEngine();
@@ -79,6 +107,7 @@ class ConsoleEngine {
     ~ConsoleEngine();
     void clear();
     void set_cursor_to_zero();
+    void set_cursor_to_pos(int x, int y);
     template <typename... Args>
     void print(Args... args) {
         ((cout_ << args), ...);
@@ -102,12 +131,27 @@ class ConsoleEngine {
         print(args...);
         reset_styles();
     };
+    template <typename... Args>
+    void print_color(Color256 text_color, Args... args) {
+        set_text_color(text_color);
+        print(args...);
+        reset_styles();
+    };
+    template <typename... Args>
+    void print_color(Color256 text_color, Color256 background_color, Args... args) {
+        set_text_color(text_color);
+        set_background_color(background_color);
+        print(args...);
+        reset_styles();
+    };
     void reset_styles();
     void set_style(ConsoleStyle style);
     void set_color(ConsoleTextColors text_color);
     void set_color(ConsoleBkgColors background_color);
     void set_color(ConsoleTextColors text_color,
                    ConsoleBkgColors background_color);
+    void set_text_color(Color256 color);
+    void set_background_color(Color256 color);
     std::string get();
     char get_no_wait();
     bool key_pressed(char key);

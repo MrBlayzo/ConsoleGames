@@ -16,6 +16,10 @@ void ConsoleEngine::clear() { cout_ << "\033[2J\033[H" << std::flush; }
 
 void ConsoleEngine::set_cursor_to_zero() { cout_ << "\033[H"; }
 
+void ConsoleEngine::set_cursor_to_pos(int x, int y) {
+    cout_ << "\033[" << (y + 1) << ";" << (x + 1) << "H";
+}
+
 std::string ConsoleEngine::get() {
     std::string input;
     std::getline(cin_, input);
@@ -47,7 +51,12 @@ void ConsoleEngine::set_color(ConsoleTextColors text_color,
     cout_ << "\033[" << static_cast<int>(text_color) << ";"
           << static_cast<int>(background_color) << "m";
 }
-
+void ConsoleEngine::set_text_color(Color256 color){
+    cout_ << "\033[38;5;" << static_cast<int>(color.id) << "m";
+}
+void ConsoleEngine::set_background_color(Color256 color){
+    cout_ << "\033[48;5;" << static_cast<int>(color.id) << "m";
+}
 #ifdef _WIN32
 void ConsoleEngine::flush_input_buffer() {
     HANDLE h = GetStdHandle(STD_INPUT_HANDLE);

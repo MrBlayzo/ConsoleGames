@@ -29,6 +29,11 @@ TEST_F(ConsoleEngineTest, SetCursorZero) {
     EXPECT_EQ(out.str(), "\033[H");
 }
 
+TEST_F(ConsoleEngineTest, SetCursor) {
+    engine->set_cursor_to_pos(1, 2);
+    EXPECT_EQ(out.str(), "\033[3;2H");
+}
+
 TEST_F(ConsoleEngineTest, Print) {
     engine->print("Hello ", "world", "\n");
     EXPECT_EQ(out.str(), "Hello world\n");
