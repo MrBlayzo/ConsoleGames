@@ -9,6 +9,8 @@ ConsoleEngine::ConsoleEngine(std::istream& in, std::ostream& out)
 }
 ConsoleEngine::~ConsoleEngine() {
     reset_styles();
+    show_cursor();
+    cout_ << "\033[999B\n";
     flush_input_buffer();
 }
 
@@ -19,6 +21,9 @@ void ConsoleEngine::set_cursor_to_zero() { cout_ << "\033[H"; }
 void ConsoleEngine::set_cursor_to_pos(int x, int y) {
     cout_ << "\033[" << (y + 1) << ";" << (x + 1) << "H";
 }
+
+void ConsoleEngine::hide_cursor() { cout_ << "\033[?25l"; }
+void ConsoleEngine::show_cursor() { cout_ << "\033[?25h"; }
 
 std::string ConsoleEngine::get() {
     std::string input;
@@ -51,10 +56,10 @@ void ConsoleEngine::set_color(ConsoleTextColors text_color,
     cout_ << "\033[" << static_cast<int>(text_color) << ";"
           << static_cast<int>(background_color) << "m";
 }
-void ConsoleEngine::set_text_color(Color256 color){
+void ConsoleEngine::set_text_color(Color256 color) {
     cout_ << "\033[38;5;" << static_cast<int>(color.id) << "m";
 }
-void ConsoleEngine::set_background_color(Color256 color){
+void ConsoleEngine::set_background_color(Color256 color) {
     cout_ << "\033[48;5;" << static_cast<int>(color.id) << "m";
 }
 #ifdef _WIN32

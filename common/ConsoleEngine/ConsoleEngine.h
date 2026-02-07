@@ -155,7 +155,8 @@ class ConsoleEngine {
     std::string get();
     char get_no_wait();
     bool key_pressed(char key);
-
+    void hide_cursor();
+    void show_cursor();
   private:
     std::istream& cin_;
     std::ostream& cout_;

@@ -4,18 +4,6 @@
 #include <deque>
 #include <set>
 #include <thread>
-std::random_device Generator::rd;
-std::mt19937 Generator::gen{Generator::rd()};
-
-float Generator::rand() {
-    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-    return dist(gen);
-}
-
-int Generator::randint(int min, int max) {
-    std::uniform_int_distribution<int> dist(min, max);
-    return dist(gen);
-}
 
 Cell::Cell(int x, int y, std::unique_ptr<Object> content)
     : pos_x(x), pos_y(y), content(std::move(content)), is_selected(false) {}
@@ -30,6 +18,7 @@ void Cell::draw(ConsoleEngine& engine) {
 Map::Map(int width, int height)
     : width(width), height(height), engine(), cursor_x(0), cursor_y(0) {
     engine.clear();
+    engine.hide_cursor();
     map.resize(height);
     for (int row = 0; row < height; ++row) {
         map[row].reserve(width);
@@ -43,10 +32,10 @@ Map::Map(int width, int height)
     generate();
     update();
 }
-
 void Map::generate() {
     generate_lakes();
     generate_rivers();
+    generate_rocks();
     generate_objects();
     for (int row = 0; row < height; ++row) {
         for (int col = 0; col < width; ++col) {
@@ -60,13 +49,14 @@ void Map::generate_lakes() {
     std::deque<Pos> potential;
     constexpr std::array<Pos, 4> dirr{{{-1, 0}, {0, -1}, {1, 0}, {0, 1}}};
 
-    int count = Generator::randint(1, std::max(1, (width * height) / 200));
+    int count =
+        RandomGenerator::randint(1, std::max(1, (width * height) / 200));
     for (int i = 0; i < count; ++i) {
-        int x = Generator::randint(0, width - 1);
-        int y = Generator::randint(0, height - 1);
+        int x = RandomGenerator::randint(0, width - 1);
+        int y = RandomGenerator::randint(0, height - 1);
         while (seen.contains({x, y})) {
-            x = Generator::randint(0, width - 1);
-            y = Generator::randint(0, height - 1);
+            x = RandomGenerator::randint(0, width - 1);
+            y = RandomGenerator::randint(0, height - 1);
         }
         map[y][x].content = std::make_unique<Water>();
         potential.emplace_front(x, y);
@@ -82,10 +72,55 @@ void Map::generate_lakes() {
                 continue;
             if (seen.contains({new_x, new_y})) continue;
             seen.emplace(new_x, new_y);
-            if (Generator::rand() < 0.4f) {
+            if (RandomGenerator::rand() < 0.4f) {
                 map[new_y][new_x].content = std::make_unique<Water>();
                 potential.emplace_front(new_x, new_y);
             }
+        }
+    }
+}
+void Map::generate_rocks() {
+    using Pos = std::pair<int, int>;
+    std::set<Pos> seen;
+    std::deque<Pos> potential;
+    constexpr std::array<Pos, 4> dirr{{{-1, 0}, {0, -1}, {1, 0}, {0, 1}}};
+
+    int count =
+        RandomGenerator::randint(1, std::max(1, (width * height) / 600));
+    for (int i = 0; i < count; ++i) {
+        int x = RandomGenerator::randint(0, width - 1);
+        int y = RandomGenerator::randint(0, height - 1);
+        while (seen.contains({x, y}) ||
+               !dynamic_cast<Ground*>(map[y][x].content.get())) {
+            x = RandomGenerator::randint(0, width - 1);
+            y = RandomGenerator::randint(0, height - 1);
+        }
+        map[y][x].content = std::make_unique<Rock>();
+        potential.emplace_front(x, y);
+        seen.emplace(x, y);
+    }
+    int dist = 0;
+    int curr_size = potential.size();
+    while (potential.size() > 0) {
+        auto [x, y] = potential.back();
+        potential.pop_back();
+        for (auto& [dx, dy] : dirr) {
+            int new_x = x + dx;
+            int new_y = y + dy;
+            if (new_x < 0 || new_y < 0 || new_x >= width || new_y >= height)
+                continue;
+            if (seen.contains({new_x, new_y}) ||
+                !dynamic_cast<Ground*>(map[new_y][new_x].content.get()))
+                continue;
+            seen.emplace(new_x, new_y);
+            if (RandomGenerator::rand() < 0.8f-dist*0.1f) {
+                map[new_y][new_x].content = std::make_unique<Rock>();
+                potential.emplace_front(new_x, new_y);
+            }
+        }
+        if (--curr_size <= 0) {
+            ++dist;
+            curr_size = potential.size();
         }
     }
 }
@@ -95,23 +130,25 @@ void Map::generate_rivers() {
     std::set<Pos> seen;
     constexpr std::array<Pos, 4> dirr{{{-1, 0}, {0, -1}, {1, 0}, {0, 1}}};
 
-    int count = Generator::randint(1, std::max(1, (width * height) / 400));
+    int count =
+        RandomGenerator::randint(1, std::max(1, (width * height) / 400));
     for (int i = 0; i < count; ++i) {
-        int x = Generator::randint(0, width - 1);
-        int y = Generator::randint(0, height - 1);
+        int x = RandomGenerator::randint(0, width - 1);
+        int y = RandomGenerator::randint(0, height - 1);
         while (seen.contains({x, y})) {
-            x = Generator::randint(0, width - 1);
-            y = Generator::randint(0, height - 1);
+            x = RandomGenerator::randint(0, width - 1);
+            y = RandomGenerator::randint(0, height - 1);
         }
         map[y][x].content = std::make_unique<Water>();
         seen.emplace(x, y);
 
-        auto [dx, dy] = dirr[Generator::randint(0, 3)];
+        auto [dx, dy] = dirr[RandomGenerator::randint(0, 3)];
         while (true) {
-            if (Generator::rand() < 0.1f) {
-                auto [new_dx, new_dy] = dirr[Generator::randint(0, 3)];
+            if (RandomGenerator::rand() < 0.1f) {
+                auto [new_dx, new_dy] = dirr[RandomGenerator::randint(0, 3)];
                 while (new_dx == dx && new_dy == dy) {
-                    std::tie(new_dx, new_dy) = dirr[Generator::randint(0, 3)];
+                    std::tie(new_dx, new_dy) =
+                        dirr[RandomGenerator::randint(0, 3)];
                 }
                 dx = new_dx;
                 dy = new_dy;
@@ -120,10 +157,10 @@ void Map::generate_rivers() {
             } else {
                 if (dx == 0) {
                     y = y + dy;
-                    x = x + dx + Generator::randint(-1, 1);
+                    x = x + dx + RandomGenerator::randint(-1, 1);
                 } else {
                     x = x + dx;
-                    y = y + dy + Generator::randint(-1, 1);
+                    y = y + dy + RandomGenerator::randint(-1, 1);
                     ;
                 }
             }
@@ -141,6 +178,7 @@ void Map::generate_objects() {
         Ground,
         Grass,
         Water,
+        Rock,
         Tree,
     };
     auto count_neighbors = [&](const std::vector<std::vector<ObjectTypes>>& map,
@@ -165,6 +203,9 @@ void Map::generate_objects() {
             if (dynamic_cast<Water*>(map[row][col].content.get())) {
                 generated[row][col] = ObjectTypes::Water;
             }
+            else if (dynamic_cast<Rock*>(map[row][col].content.get())) {
+                generated[row][col] = ObjectTypes::Rock;
+            }
         }
     }
 
@@ -175,7 +216,7 @@ void Map::generate_objects() {
                 if (generated[y][x] != ObjectTypes::Ground)
                     continue;  // пропускаем фиксированные
 
-                float r = Generator::rand();
+                float r = RandomGenerator::rand();
                 bool has_grass_near =
                     count_neighbors(generated, x, y, ObjectTypes::Grass, 1) > 0;
                 float grass_prob = has_grass_near ? 0.2f : 0.02f;
@@ -185,7 +226,7 @@ void Map::generate_objects() {
                     continue;
                 }
 
-                r = Generator::rand();
+                r = RandomGenerator::rand();
                 bool has_tree_near_3 =
                     count_neighbors(generated, x, y, ObjectTypes::Tree, 2) > 0;
                 bool has_tree_near_1 =

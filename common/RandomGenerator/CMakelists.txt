@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.14)
+project(RandomGenerator LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_library(RandomGenerator
+    RandomGenerator.cpp
+)
+target_include_directories(RandomGenerator PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
+target_compile_features(RandomGenerator PUBLIC cxx_std_20)
+
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+endif()

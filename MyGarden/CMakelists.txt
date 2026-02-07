@@ -6,10 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 get_filename_component(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../common" ABSOLUTE)
 add_subdirectory(${COMMON_DIR}/ConsoleEngine ConsoleEngine)
+add_subdirectory(${COMMON_DIR}/RandomGenerator RandomGenerator)
 
-add_library(GameObjects STATIC GameObjects.cpp GameObjects.h)
-add_executable(MyGarden main.cpp Game.cpp)
+add_executable(MyGarden main.cpp Game.cpp GameObjects.cpp)
 
-target_link_libraries(MyGarden PRIVATE GameObjects)
-target_link_libraries(GameObjects PRIVATE ConsoleEngine)
 target_link_libraries(MyGarden PRIVATE ConsoleEngine)
+target_link_libraries(MyGarden PRIVATE RandomGenerator)

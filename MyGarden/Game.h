@@ -1,20 +1,10 @@
 #pragma once
 #include <memory>
-#include <random>
 #include <vector>
 
 #include "ConsoleEngine.h"
 #include "GameObjects.h"
-
-class Generator {
-  public:
-    static float rand();
-    static int randint(int min, int max);
-
-  private:
-    static std::random_device rd;
-    static std::mt19937 gen;
-};
+#include "RandomGenerator.h"
 
 class Cell {
   public:
@@ -45,6 +35,7 @@ class Map {
     void generate();
     void generate_lakes();
     void generate_rivers();
+    void generate_rocks();
     void generate_objects();
 };
 
