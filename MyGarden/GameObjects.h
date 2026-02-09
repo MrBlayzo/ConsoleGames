@@ -2,6 +2,15 @@
 #include "ConsoleEngine.h"
 #include "RandomGenerator.h"
 
+namespace PassabilityCoefs {
+inline constexpr double ground = 2;
+inline constexpr double soil = 4;
+inline constexpr double grass = 8;
+inline constexpr double path = 1;
+inline constexpr double water = 16;
+inline constexpr double rock = -1;
+};  // namespace PassabilityCoefs
+
 class Object {
   public:
     Object(char sprite, Color256 color);
@@ -9,12 +18,20 @@ class Object {
     virtual bool update();
     char get_sprite();
     Color256 get_color();
+    virtual constexpr bool passable(){return false;};
 
   protected:
     char sprite;
     Color256 color;
 
   private:
+};
+
+class TerrainObject : public Object {
+  public:
+    TerrainObject(char sprite, Color256 color);
+    virtual constexpr double get_passability() { return -1.0; };
+    constexpr bool passable(){return true;};
 };
 
 class Gardener : public Object {
@@ -25,39 +42,57 @@ class Gardener : public Object {
   private:
 };
 
-class Ground : public Object {
+class Ground : public TerrainObject {
   public:
+    static constexpr double passability = PassabilityCoefs::ground;
     Ground();
 
+    constexpr double get_passability() override { return passability; };
+
   private:
 };
-class Soil : public Object {
+class Soil : public TerrainObject {
   public:
+    static constexpr double passability = PassabilityCoefs::soil;
     Soil();
 
+    constexpr double get_passability() override { return passability; };
+
   private:
 };
-class Grass : public Object {
+class Grass : public TerrainObject {
   public:
+    static constexpr double passability = PassabilityCoefs::grass;
     Grass();
 
+    constexpr double get_passability() override { return passability; };
+
   private:
 };
-class Path : public Object {
+class Path : public TerrainObject {
   public:
+    static constexpr double passability = PassabilityCoefs::path;
     Path();
 
-  private:
-};
-class Water : public Object {
-  public:
-    Water();
+    constexpr double get_passability() override { return passability; };
 
   private:
 };
-class Rock : public Object {
+class Water : public TerrainObject {
   public:
+    static constexpr double passability = PassabilityCoefs::water;
+    Water();
+
+    constexpr double get_passability() override { return passability; };
+
+  private:
+};
+class Rock : public TerrainObject {
+  public:
+    static constexpr double passability = PassabilityCoefs::rock;
     Rock();
+
+    constexpr double get_passability() override { return passability; };
 
   private:
 };
@@ -134,8 +169,6 @@ class TreeStateFactory : public GrowthStateFactory {
 
 class GrowingObject : public Object {
   public:
-    static constexpr int min_growing_time = 50;
-    static constexpr int max_growing_time = 100;
     GrowingObject(char sprite, Color256 color, GrowthStatePtr state);
 
     virtual const GrowthStateFactory& get_factory() const = 0;
@@ -149,7 +182,7 @@ class GrowingObject : public Object {
 
 class Vegetable : public GrowingObject {
   public:
-    static const VegetableStateFactory state_factory; 
+    static const VegetableStateFactory state_factory;
     Vegetable();
     Vegetable(GrowthStatePtr state);
     bool update() override;
@@ -159,7 +192,7 @@ class Vegetable : public GrowingObject {
 };
 class Flower : public GrowingObject {
   public:
-    static const FlowerStateFactory state_factory; 
+    static const FlowerStateFactory state_factory;
     Flower();
     Flower(GrowthStatePtr state);
     bool update() override;
@@ -169,7 +202,7 @@ class Flower : public GrowingObject {
 };
 class Tree : public GrowingObject {
   public:
-    static const TreeStateFactory state_factory; 
+    static const TreeStateFactory state_factory;
     Tree();
     Tree(GrowthStatePtr state);
     bool update() override;

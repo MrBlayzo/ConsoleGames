@@ -19,11 +19,11 @@ void ConsoleEngine::clear() { cout_ << "\033[2J\033[H" << std::flush; }
 void ConsoleEngine::set_cursor_to_zero() { cout_ << "\033[H"; }
 
 void ConsoleEngine::set_cursor_to_pos(int x, int y) {
-    cout_ << "\033[" << (y + 1) << ";" << (x + 1) << "H";
+    cout_ << "\033[" << (y + 1) << ";" << (x + 1) << "H" << std::flush;
 }
 
-void ConsoleEngine::hide_cursor() { cout_ << "\033[?25l"; }
-void ConsoleEngine::show_cursor() { cout_ << "\033[?25h"; }
+void ConsoleEngine::hide_cursor() { cout_ << "\033[?25l" << std::flush; }
+void ConsoleEngine::show_cursor() { cout_ << "\033[?25h" << std::flush; }
 
 std::string ConsoleEngine::get() {
     std::string input;
