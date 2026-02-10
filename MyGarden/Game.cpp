@@ -1,11 +1,6 @@
 #include "Game.h"
 
 #include <algorithm>
-#include <array>
-#include <deque>
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
 
 Cell::Cell(int x, int y, std::unique_ptr<TerrainObject> terrain)
     : pos_x(x),
@@ -26,7 +21,7 @@ void Cell::draw(ConsoleEngine& engine) {
 }
 
 Map::Map(int width, int height)
-    : width(width), height(height), engine(), cursor_pos(0, 0) {
+    : width(width), height(height), engine(), cursor_pos(0, 0), player() {
     engine.clear();
     engine.hide_cursor();
     map.resize(height);
@@ -49,11 +44,7 @@ void Map::generate() {
     generate_rocks();
     generate_objects();
     add_gardener();
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            redraw(x, y);
-        }
-    }
+    redraw_all();
 }
 void Map::generate_lakes() {
     std::unordered_set<Point> seen;
@@ -272,9 +263,16 @@ void Map::add_gardener() {
         y = RandomGenerator::randint(0, height - 1);
     }
     map[y][x].entity = std::make_unique<Gardener>();
-    player_pos = Point(x, y);
+    player.pos = Point(x, y);
 }
 void Map::redraw(int x, int y) { map[y][x].draw(engine); }
+void Map::redraw_all() {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            redraw(x, y);
+        }
+    }
+}
 void Map::update() {
     get_player_control();
     player_move();
@@ -289,15 +287,15 @@ void Map::update() {
 }
 
 void Map::clear_path() {
-    if (!active_path.has_value()) return;
-    for (auto& point : active_path.value()) {
+    if (!player.active_path.has_value()) return;
+    for (auto& point : player.active_path.value()) {
         map[point.y][point.x].is_on_path = false;
         redraw(point.x, point.y);
     }
 }
 void Map::draw_path() {
-    if (!active_path.has_value()) return;
-    for (auto& point : active_path.value()) {
+    if (!player.active_path.has_value()) return;
+    for (auto& point : player.active_path.value()) {
         map[point.y][point.x].is_on_path = true;
         redraw(point.x, point.y);
     }
@@ -315,11 +313,42 @@ void Map::get_player_control() {
             cursor_pos.y = std::max(0, cursor_pos.y - 1);
         } else if (c == 's') {
             cursor_pos.y = std::min(height - 1, cursor_pos.y + 1);
-        } else if (c == '\n' || c == 'f') {
+        } else if (c == 'f') {
             clear_path();
-            walk_iteration = 0;
-            active_path = PathFinder::create_path(*this, player_pos, cursor_pos);
+            player.walk_iteration = 0;
+            if (map[cursor_pos.y][cursor_pos.x].entity)
+                player.active_path = PathFinder::create_path_to_area(*this, player.pos,
+                                                              cursor_pos);
+            else
+                player.active_path = PathFinder::create_path_to_point(
+                    *this, player.pos, cursor_pos);
             draw_path();
+        } else if (c == '\r') {
+            if (!map[cursor_pos.y][cursor_pos.x].entity) {
+                int chose = Menu::show_options_menu(
+                    engine, 20, 10, (width - 20) / 2, (height - 10) / 2,
+                    {"Move", "Place"});
+                redraw_all();
+                if (chose == 0) {
+                    clear_path();
+                    player.walk_iteration = 0;
+                    player.active_path = PathFinder::create_path_to_point(
+                        *this, player.pos, cursor_pos);
+                    draw_path();
+                }
+            } else {
+                int chose =
+                    Menu::show_options_menu(engine, 20, 10, (width - 20) / 2,
+                                            (height - 10) / 2, {"Move", "Dig"});
+                redraw_all();
+                if (chose == 0) {
+                    clear_path();
+                    player.walk_iteration = 0;
+                    player.active_path = PathFinder::create_path_to_area(
+                        *this, player.pos, cursor_pos);
+                    draw_path();
+                }
+            }
         }
         c = engine.get_no_wait();
     }
@@ -331,100 +360,199 @@ void Map::get_player_control() {
     }
 }
 
-std::optional<std::deque<Point>> PathFinder::create_path(Map& map, Point start,
-                                                      Point end) {
-    struct PathPoint {
-        Point pos;
-        Point parent_pos;
-        double cost;
-        double target_cost;
-        bool calculated = false;
-    };
-    constexpr std::array<Point, 4> dirr{{{-1, 0}, {0, -1}, {1, 0}, {0, 1}}};
+std::optional<std::deque<Point>> PathFinder::create_path_to_point(Map& map,
+                                                                  Point start,
+                                                                  Point end) {
+    return PathFinder(map, start, end, [end](Point p) { return p == end; })
+        .find_path();
+}
+std::optional<std::deque<Point>> PathFinder::create_path_to_area(Map& map,
+                                                                 Point start,
+                                                                 Point end) {
+    return PathFinder(
+               map, start, end,
+               [end](Point p) {
+                   return std::abs(p.x - end.x) + std::abs(p.y - end.y) == 1;
+               })
+        .find_path();
+}
 
-    std::unordered_map<Point, PathPoint> points;
-    auto cmp = [&points](const Point left, const Point right) {
-        return points[left].cost + points[left].target_cost >
-               points[right].cost + points[right].target_cost;
-    };
-    std::priority_queue<Point, std::vector<Point>, decltype(cmp)> pending(cmp);
+PathFinder::PathFinder(Map& map, Point start, Point end,
+                       std::function<bool(Point)> is_target)
+    : map_(map),
+      start_(start),
+      end_(end),
+      points_(),
+      comparator_(points_),
+      pending_(comparator_),
+      is_target_(std::move(is_target)) {}
 
-    points[start] = PathPoint(
-        start, start, 0, std::abs(end.x - start.x) + std::abs(end.y - start.y));
-    pending.push(start);
+std::optional<std::deque<Point>> PathFinder::find_path() {
+    points_[start_] = PathPoint(start_, start_, 0, dist_to_target(start_));
+    pending_.push(start_);
 
-    while (!pending.empty()) {
-        auto point_pos = pending.top();
-        pending.pop();
-        auto& point = points[point_pos];
-        if (point.calculated) continue;
-        point.calculated = true;
-        for (auto& d : dirr) {
-            Point new_pos{point_pos + d};
-            if (new_pos.x < 0 || new_pos.x >= map.width || new_pos.y < 0 ||
-                new_pos.y >= map.height) {
-                continue;
-            }
-            if (map.get(new_pos.x, new_pos.y).terrain->get_passability() <= 0) {
-                continue;
-            }
-            if (map.get(new_pos.x, new_pos.y).entity) {
-                continue;
-            }
-            if (points.contains(new_pos) && points[new_pos].calculated) {
-                continue;
-            }
-
-            double new_cost =
-                point.cost +
-                map.get(new_pos.x, new_pos.y).terrain->get_passability();
-
-            if (!points.contains(new_pos) || new_cost < points[new_pos].cost) {
-                points[new_pos] = PathPoint(
-                    new_pos, point_pos, new_cost,
-                    std::abs(end.x - new_pos.x) + std::abs(end.y - new_pos.y));
-
-                if (new_pos == end) {
-                    std::deque<Point> path;
-                    auto current = end;
-                    while (current != start) {
-                        path.push_front(current);
-                        current = points[current].parent_pos;
-                    }
-                    path.push_front(start);
-                    return path;
-                }
-                pending.push(new_pos);
-            }
+    while (!pending_.empty()) {
+        auto current_pos = pending_.top();
+        pending_.pop();
+        if (is_target_(current_pos)) {
+            found_target_ = current_pos;
+            return convert_path();
         }
+        explore_point(current_pos);
     }
 
     return std::nullopt;
 }
+void PathFinder::explore_point(Point current_pos) {
+    auto& current = points_[current_pos];
+    if (current.calculated) return;
+    current.calculated = true;
+    for (auto& d : dirr) {
+        look_at_new({current_pos + d}, current_pos, current.cost);
+    }
+}
+void PathFinder::look_at_new(Point new_pos, Point current_pos,
+                             double current_cost) {
+    if (new_pos.x < 0 || new_pos.x >= map_.width || new_pos.y < 0 ||
+        new_pos.y >= map_.height) {
+        return;
+    }
+    if (map_.get(new_pos.x, new_pos.y).terrain->get_passability() <= 0) {
+        return;
+    }
+    if (map_.get(new_pos.x, new_pos.y).entity) {
+        return;
+    }
+    if (points_.contains(new_pos) && points_[new_pos].calculated) {
+        return;
+    }
 
+    double new_cost = current_cost +
+                      map_.get(new_pos.x, new_pos.y).terrain->get_passability();
 
+    if (!points_.contains(new_pos) || new_cost < points_[new_pos].cost) {
+        points_[new_pos] =
+            PathPoint(new_pos, current_pos, new_cost, dist_to_target(new_pos));
+
+        pending_.push(new_pos);
+    }
+}
+double PathFinder::dist_to_target(const Point& p) const {
+    return std::abs(end_.x - p.x) + std::abs(end_.y - p.y);
+}
+
+std::deque<Point> PathFinder::convert_path() {
+    std::deque<Point> path;
+    auto current = found_target_.value();
+    while (current != start_) {
+        path.push_front(current);
+        current = points_[current].parent_pos;
+    }
+    return path;
+}
 
 void Map::player_move() {
-    if (!active_path.has_value()) return;
-    if (active_path.value().empty()) return;
-    auto next_point = active_path.value().front();
-    if (++walk_iteration <
+    if (!player.active_path.has_value()) return;
+    if (player.active_path.value().empty()) return;
+    auto next_point = player.active_path.value().front();
+    if (++player.walk_iteration <
         map[next_point.y][next_point.x].terrain->get_passability())
         return;
 
-    walk_iteration = 0;
-    active_path.value().pop_front();
+    player.walk_iteration = 0;
+    player.active_path.value().pop_front();
 
-    map[player_pos.y][player_pos.x].entity.reset();
-    if (!dynamic_cast<Water*>(map[player_pos.y][player_pos.x].terrain.get())) {
-        map[player_pos.y][player_pos.x].terrain = std::make_unique<Path>();
+    map[player.pos.y][player.pos.x].entity.reset();
+    if (!dynamic_cast<Water*>(map[player.pos.y][player.pos.x].terrain.get())) {
+        map[player.pos.y][player.pos.x].terrain = std::make_unique<Path>();
     }
-    map[player_pos.y][player_pos.x].is_on_path = false;
-    redraw(player_pos.x, player_pos.y);
+    map[player.pos.y][player.pos.x].is_on_path = false;
+    redraw(player.pos.x, player.pos.y);
 
     map[next_point.y][next_point.x].entity = std::make_unique<Gardener>();
     redraw(next_point.x, next_point.y);
-    player_pos = next_point;
+    player.pos = next_point;
+}
+
+int Menu::show_options_menu(ConsoleEngine& engine, int width, int heigth,
+                            int pos_x, int pos_y,
+                            std::vector<std::string> options) {
+    return Menu(engine, width, heigth, pos_x, pos_y, options).get_option();
+}
+Menu::Menu(ConsoleEngine& engine, int width, int height, int pos_x, int pos_y,
+           std::vector<std::string> options)
+    : engine(engine),
+      width(width),
+      pos_x(pos_x),
+      pos_y(pos_y),
+      height(height),
+      options(options),
+      current_option(0) {}
+
+void Menu::set_relative_pos(int x, int y) {
+    engine.set_cursor_to_pos(pos_x + x, pos_y + y);
+}
+
+void Menu::draw() {
+    for (int x = 0; x < width; ++x) {
+        set_relative_pos(x, 0);
+        engine.print('#');
+    }
+    for (int x = 0; x < width; ++x) {
+        set_relative_pos(x, height - 1);
+        engine.print('#');
+    }
+    for (int y = 0; y < height; ++y) {
+        set_relative_pos(0, y);
+        engine.print('#');
+    }
+    for (int y = 0; y < height; ++y) {
+        set_relative_pos(width - 1, y);
+        engine.print('#');
+    }
+    for (int y = 1; y < height - 1; ++y) {
+        set_relative_pos(1, y);
+        engine.print(std::string(width - 2, ' '));
+    }
+    for (int option = 0; option < options.size(); ++option) {
+        set_relative_pos((width - 2 - options[option].size()) / 2, option + 1);
+        if (option == current_option)
+            engine.set_background_color(Colors256::Gray50);
+        engine.print(options[option]);
+        if (option == current_option) engine.reset_styles();
+    }
+}
+int Menu::get_option() {
+    draw();
+    char c;
+    do {
+        c = engine.get_no_wait();
+        if (c == 'w') {
+            select_option(current_option - 1);
+        } else if (c == 's') {
+            select_option(current_option + 1);
+        } else if (c == '\r') {
+            return current_option;
+        } else if (c == 27) {
+            return -1;
+        }
+    } while (true);
+    return 0;
+}
+void Menu::select_option(int option) {
+    option = std::max(0, std::min((int)options.size() - 1, option));
+    if (option == current_option) return;
+    set_relative_pos((width - 2 - options[current_option].size()) / 2,
+                     current_option + 1);
+    engine.print(options[current_option]);
+
+    current_option = option;
+
+    engine.set_background_color(Colors256::Gray50);
+    set_relative_pos((width - 2 - options[current_option].size()) / 2,
+                     current_option + 1);
+    engine.print(options[current_option]);
+    engine.reset_styles();
 }
 
 MyGarden::MyGarden(int width, int height) : map(width, height) {}
