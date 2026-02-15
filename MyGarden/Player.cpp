@@ -92,17 +92,17 @@ void Player::new_action() {
     map.redraw_all();
 
     if (chose < 0) return;  // TODO: исправить на optional
-    if (std::any_cast<PlayerActionTypes>(menu_options[chose].return_param) ==
-        PlayerActionTypes::Move) {
+    PlayerActionTypes chosed =
+        std::any_cast<PlayerActionTypes>(menu_options[chose].return_param);
+    if (chosed == PlayerActionTypes::Move) {
         create_path();
-    } else if (std::any_cast<PlayerActionTypes>(
-                   menu_options[chose].return_param) ==
-               PlayerActionTypes::Place) {
+    } else if (chosed == PlayerActionTypes::Place) {
         int chose_object = Menu::show_options_menu(
             map.engine, 20, 10, (map.width - 20) / 2, (map.height - 10) / 2,
-            {{"Flower", PlayerActionTypes::Move},
-             {"Tree", PlayerActionTypes::Move}});
+            {{"Flower", 0},
+             {"Tree", 1}});
         map.redraw_all();
+        if (chose_object < 0) return;
         create_path_to_area();
         if (chose_object == 0)
             active_action = std::make_unique<PlaceAction>(
@@ -110,19 +110,27 @@ void Player::new_action() {
         else if (chose_object == 1)
             active_action = std::make_unique<PlaceAction>(
                 map, cursor_pos, std::make_unique<Tree>());
-    } else if (std::any_cast<PlayerActionTypes>(
-                   menu_options[chose].return_param) ==
-               PlayerActionTypes::Build) {
-        int chose_object = Menu::show_options_menu(
+    } else if (chosed == PlayerActionTypes::Build) {
+        std::vector<Buildings> buildings =
+            map.get_available_buildings(cursor_pos.x, cursor_pos.y);
+
+        std::vector<MenuOption> menu_buildings_options;
+        for (auto& building : buildings) {
+            menu_buildings_options.emplace_back(building_type_to_string(building), building);
+        }
+
+        int chose_object_ind = Menu::show_options_menu(
             map.engine, 20, 10, (map.width - 20) / 2, (map.height - 10) / 2,
-            {{"Bridge", 0},
-             {"House", 0}});  // TODO: мосты на земле и дома в реках
+            menu_buildings_options);
         map.redraw_all();
+        if (chose_object_ind < 0) return;
+        Buildings chose_object =
+            std::any_cast<Buildings>(menu_buildings_options[chose_object_ind].return_param);
         create_path_to_area();
-        if (chose_object == 0)
+        if (chose_object == Buildings::Bridge)
             active_action = std::make_unique<BuildAction>(
                 map, cursor_pos, std::make_unique<Bridge>());
-        else if (chose_object == 1)
+        else if (chose_object == Buildings::House)
             active_action = std::make_unique<BuildAction>(
                 map, cursor_pos, std::make_unique<House>());
     } else {

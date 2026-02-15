@@ -50,6 +50,7 @@ class Map {
     void redraw_all();
 
     std::vector<PlayerActionTypes> get_available_action(int x, int y);
+    std::vector<Buildings> get_available_buildings(int x, int y);
 
     int width;
     int height;

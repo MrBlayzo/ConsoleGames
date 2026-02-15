@@ -17,6 +17,21 @@ inline constexpr double bridge = 1;
 };  // namespace PassabilityCoefs
 
 enum class PlayerActionTypes;
+enum class Buildings{
+  House, 
+  Bridge
+};
+inline std::string building_type_to_string(Buildings building){
+    switch (building)
+    {
+    case Buildings::House:
+        return "House";
+    case Buildings::Bridge:
+        return "Bridge";
+    default:
+        return "";
+    }
+}
 
 class Object {
   public:
@@ -39,6 +54,7 @@ class TerrainObject : public Object {
   public:
     TerrainObject(char sprite, Color256 color);
     virtual constexpr double get_passability() { return -1.0; };
+    virtual std::vector<Buildings> get_available_buildings();
     constexpr bool passable(){return true;};
 };
 
@@ -57,6 +73,7 @@ class Ground : public TerrainObject {
 
     constexpr double get_passability() override { return passability; };
     std::vector<PlayerActionTypes> get_available_actions() override;
+    std::vector<Buildings> get_available_buildings() override;
 
   private:
 };
@@ -67,9 +84,11 @@ class Soil : public TerrainObject {
 
     constexpr double get_passability() override { return passability; };
     std::vector<PlayerActionTypes> get_available_actions() override;
+    std::vector<Buildings> get_available_buildings() override;
 
   private:
 };
+// TODO: исправить - трава, здания - это не TerrainObject
 class Grass : public TerrainObject {
   public:
     static constexpr double passability = PassabilityCoefs::grass;
@@ -77,6 +96,7 @@ class Grass : public TerrainObject {
 
     constexpr double get_passability() override { return passability; };
     std::vector<PlayerActionTypes> get_available_actions() override;
+    std::vector<Buildings> get_available_buildings() override;
 
   private:
 };
@@ -87,6 +107,7 @@ class Path : public TerrainObject {
 
     constexpr double get_passability() override { return passability; };
     std::vector<PlayerActionTypes> get_available_actions() override;
+    std::vector<Buildings> get_available_buildings() override;
 
   private:
 };
@@ -107,6 +128,7 @@ class Water : public TerrainObject {
 
     constexpr double get_passability() override { return passability; };
     std::vector<PlayerActionTypes> get_available_actions() override;
+    std::vector<Buildings> get_available_buildings() override;
 
   private:
 };

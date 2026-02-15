@@ -8,6 +8,7 @@ Color256 Object::get_color() { return color; }
 std::vector<PlayerActionTypes> Object::get_available_actions(){return {};}
 TerrainObject::TerrainObject(char sprite, Color256 color)
     : Object(sprite, color) {}
+std::vector<Buildings> TerrainObject::get_available_buildings(){return {};}
 
 GrowingObject::GrowingObject(char sprite, Color256 color, GrowthStatePtr state)
     : Object(sprite, color), state(std::move(state)), grow_iteration(0) {}
@@ -149,4 +150,20 @@ std::vector<PlayerActionTypes> House::get_available_actions(){
 }
 std::vector<PlayerActionTypes> GrowingObject::get_available_actions(){
     return {PlayerActionTypes::Move, PlayerActionTypes::Dig};
+}
+
+std::vector<Buildings> Ground::get_available_buildings(){
+    return {Buildings::House};
+}
+std::vector<Buildings> Soil::get_available_buildings(){
+    return {Buildings::House};
+}
+std::vector<Buildings> Grass::get_available_buildings(){
+    return {Buildings::House};
+}
+std::vector<Buildings> Path::get_available_buildings(){
+    return {Buildings::House};
+}
+std::vector<Buildings> Water::get_available_buildings(){
+    return {Buildings::Bridge};
 }

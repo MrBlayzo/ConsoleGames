@@ -373,6 +373,10 @@ std::vector<PlayerActionTypes> Map::get_available_action(int x, int y){
     return map[y][x].terrain->get_available_actions();
 }
 
+std::vector<Buildings> Map::get_available_buildings(int x, int y){
+    return map[y][x].terrain->get_available_buildings();
+}
+
 int Menu::show_options_menu(ConsoleEngine& engine, int width, int heigth,
                             int pos_x, int pos_y,
                             std::vector<MenuOption> options) {
